@@ -16,7 +16,7 @@ library(tidyverse)
 library(lubridate)
 ```
 
-Load the data, which was previously scraped from the Department website using [this script](scrape.html).
+Load the data, which was previously scraped from the Department website using [this script](scrape.html).  The data is total confirmed cases broken down by date and geographic area within the county.
 
 ```{r}
 raw_data <- read_csv("data/data.csv", col_types="fiD")
