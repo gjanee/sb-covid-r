@@ -188,7 +188,7 @@ $(document).ready(function () {
 </div>
 
 
-<p>Tracking how Santa Barbara County is faring with COVID-19. The data comes from the Santa Barbara County Public Health Department, which is updated every weekday; this page is updated weekly.</p>
+<p>Tracking how Santa Barbara County is faring with COVID-19. The data comes from the <a href="http://www.countyofsb.org/phd/">Santa Barbara County Public Health Department</a>, which is updated every weekday; this page is updated weekly.</p>
 <p>Hat tip to <a href="https://cjlortie.github.io/SBC_Covid_Trends/">Chris Lortie</a> for the idea.</p>
 <pre class="r"><code>library(tidyverse)
 library(lubridate)</code></pre>
@@ -233,7 +233,7 @@ head(raw_data)</code></pre>
 ## 15 SANTA YNEZ VALLEY including the Cities of Solvan…    27 2020-07-08    -1
 ## 16 FEDERAL PRISON IN LOMPOC                            984 2020-07-08   -10
 ## 17 UNINCORPORATED AREA OF THE GOLETA VALLEY AND GAV…    94 2020-07-24    -1</code></pre>
-<p>Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county. There’s no firm dividing line, but below is the definition we use. Notice that the Lompoc prison is excluded. To smooth the data we downsample it to weeks. Because we’re dealing only with totals, we can do this simply by selecting the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).</p>
+<p>Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county. There’s no firm dividing line, but below is the definition we use. Notice that the Lompoc prison is excluded. To smooth the data we downsample it to weeks instead of days. Because we’re dealing only with totals, we can do this simply by selecting all the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).</p>
 <pre class="r"><code>south_areas &lt;- c(&quot;SOUTH COUNTY UNINCORPORATED AREA includes communities of Montecito, Summerland and the City of Carpinteria&quot;,
                  &quot;CITY OF SANTA BARBARA and the unincorporated area of Mission Canyon&quot;,
                  &quot;CITY OF GOLETA&quot;,
@@ -292,11 +292,11 @@ ggplot(week_data, aes(x=date, y=new_cases, color=region)) + geom_line() +
 </div>
 <div id="growth-rate" class="section level2">
 <h2>Growth rate</h2>
-<p>How fast is the virus spreading? I.e., what growth rate does the general slope of the above graphs represent? Looking at North county growth over the first 13 weeks for which we have data, we can compute from <span class="math inline">\({\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}\)</span>:</p>
+<p>How fast is the virus spreading? I.e., what growth rate does the general slope of the above graphs represent? Looking at north county growth over the first 13 weeks for which we have data, we can compute from <span class="math inline">\({\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}\)</span>:</p>
 <pre class="r"><code>data &lt;- base_data %&gt;% filter(region == &quot;north&quot;) %&gt;% arrange(date)
 growth_rate &lt;- (data[13,&quot;cases&quot;]/data[1,&quot;cases&quot;])^(1/12)
 doubling_time &lt;- log(2)/log(growth_rate) # weeks</code></pre>
-<p>So the virus is spreading 22% weekly on average, meaning the number of cases doubles about every 3.4 weeks. Caveat: case counts are affecte by the prevalence of testing.</p>
+<p>So the virus is growing by 22% each week on average, meaning the number of cases doubles about every 3.4 weeks. Caveat: case counts are affected by the prevalence of testing.</p>
 </div>
 
 

@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Tracking how Santa Barbara County is faring with COVID-19.  The data comes from the Santa Barbara County Public Health Department, which is updated every weekday; this page is updated weekly.
+Tracking how Santa Barbara County is faring with COVID-19.  The data comes from the [Santa Barbara County Public Health Department](http://www.countyofsb.org/phd/), which is updated every weekday; this page is updated weekly.
 
 Hat tip to [Chris Lortie](https://cjlortie.github.io/SBC_Covid_Trends/) for the idea.
 
@@ -36,7 +36,7 @@ raw_data %>%
   filter(delta < 0)
 ```
 
-Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks.  Because we're dealing only with totals, we can do this simply by selecting the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
+Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks instead of days.  Because we're dealing only with totals, we can do this simply by selecting all the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
 
 ```{r}
 south_areas <- c("SOUTH COUNTY UNINCORPORATED AREA includes communities of Montecito, Summerland and the City of Carpinteria",
@@ -104,7 +104,7 @@ ggplot(week_data, aes(x=cases, y=new_cases, color=region)) +
 
 ## Growth rate
 
-How fast is the virus spreading?  I.e., what growth rate does the general slope of the above graphs represent?  Looking at North county growth over the first 13 weeks for which we have data, we can compute from ${\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}$:
+How fast is the virus spreading?  I.e., what growth rate does the general slope of the above graphs represent?  Looking at north county growth over the first 13 weeks for which we have data, we can compute from ${\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}$:
 
 ```{r}
 data <- base_data %>% filter(region == "north") %>% arrange(date)
@@ -112,4 +112,4 @@ growth_rate <- (data[13,"cases"]/data[1,"cases"])^(1/12)
 doubling_time <- log(2)/log(growth_rate) # weeks
 ```
 
-So the virus is spreading `r round((growth_rate-1)*100)`% weekly on average, meaning the number of cases doubles about every `r round(doubling_time, 1)` weeks.  Caveat: case counts are affecte by the prevalence of testing.
+So the virus is growing by `r round((growth_rate-1)*100)`% each week on average, meaning the number of cases doubles about every `r round(doubling_time, 1)` weeks.  Caveat: case counts are affected by the prevalence of testing.
