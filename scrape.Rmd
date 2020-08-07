@@ -1,0 +1,87 @@
+---
+title: "Scraping SBCPHD"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The code here scrapes the Santa Barbara County Public Health Department's [COVID-19 status page](https://publichealthsbc.org/status-reports/) for case counts.  It's hard to imagine how they could have made the data harder to extract, seeing as what is counted, how it is counted, and how counts are presented have all changed multiple times since the pandemic began.  Our goal is to extract total confirmed cases (only) broken down by date and by geographic area within the county.  Without going to significantly more work, this is possible only as far back as April 27, 2020.
+
+The data frequency is daily, except for weekends and holidays.
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(rvest)
+
+# Unicode characters
+nbsp <- intToUtf8(0x00A0)
+emdash <- intToUtf8(0x2014)
+
+url <- "https://publichealthsbc.org/status-reports/"
+```
+
+The page can be loaded live, but here we assume that the page has already been downloaded via `wget` or other.  There are a few places where non-breaking spaces appear in column names.  These make the columns impossible to reference from R, so we just remove them entirely.
+
+```{r}
+raw_page <- read_file("data/cache.html") %>% str_replace_all(nbsp, "")
+page <- read_html(raw_page)
+```
+
+Each day's data is contained in a pair of adjacent sibling `<div>`'s, the first of which contains the date inside a hyperlink (a couple different formats are used for the date), the second of which contains the data table we want (mixed in with other tables and content in variable order).  We identify the table we want by looking for the presence of key column names.  The cases column name might be "Confirmed Cases" or "Total Confirmed Cases".
+
+`blocks` is a list of HTML nodes representing the first `<div>` in each pair.
+
+```{r}
+table_constraint <- paste("descendant::td//text()[contains(.,'Geographic Area')]",
+                          "and",
+                          "descendant::td//text()[contains(.,'Confirmed Cases')]")
+blocks <- page %>%
+  html_nodes(xpath=paste("//div[starts-with(@id,'elementor-tab-title')]",
+                         "[following-sibling::div/table[", table_constraint, "]]"))
+```
+
+Extract the dates and tables.  `dates` is a vector of POSIX dates.  `tables` is a list of data frames.
+
+```{r}
+dates <- blocks %>%
+  html_node(xpath="a") %>%
+  html_text %>%
+  str_extract("\\w+ \\d{1,2}, \\d{4}") %>%
+  mdy
+
+tables <- blocks %>%
+  html_node(xpath=paste("following-sibling::div/table[", table_constraint, "]")) %>%
+  html_table(header=TRUE)
+```
+
+We need to join the dates to the data frames as an additional column, concatenate the data frames to form a single table, and perform other cleanups.  This is most easily done all at once.
+
+```{r}
+form_df <- function (table, date) {
+  # combine a single table and a single date
+  if ("Total Confirmed Cases" %in% colnames(table)) {
+    colname <- "Total Confirmed Cases"
+  } else {
+    colname <- "Confirmed Cases"
+  }
+  table %>% select(all_of(c("Geographic Area", colname))) %>%
+    rename(area="Geographic Area") %>%
+    rename(cases=all_of(colname)) %>%
+    mutate(cases=as.character(cases)) %>% # ensure type is chr for next line to work
+    mutate(cases=if_else(cases == emdash, "0", cases)) %>% # type must be chr here
+    mutate(cases=as.integer(cases)) %>%
+    mutate(date=date) %>% # add a date column
+    filter(!grepl("Total|Pending", area)) # filter out non-areas
+}
+
+table <- map2_df(tables, dates, ~ form_df(.x, .y))
+```
+
+Write the data out.
+
+```{r}
+write_csv(table, "data/data.csv")
+```

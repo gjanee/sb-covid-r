@@ -1,0 +1,115 @@
+---
+title: "COVID in Santa Barbara County"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Tracking how Santa Barbara County is faring with COVID-19.  The data comes from the Santa Barbara County Public Health Department, which is updated every weekday; this page is updated weekly.
+
+Hat tip to [Chris Lortie](https://cjlortie.github.io/SBC_Covid_Trends/) for the idea.
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+Load the data, which was previously scraped from the Department website using [this script](scrape.html).
+
+```{r}
+raw_data <- read_csv("data/data.csv", col_types="fiD")
+head(raw_data)
+```
+```{r}
+range(raw_data$date)
+```
+
+Sanity check: for each geographic area, the number of cases, being totals, should increase monotonically over time.  But this being the real world, in a few cases they don't.  Perhaps decreasing case numbers reflect corrections?
+
+```{r}
+raw_data %>%
+  group_by(area) %>%
+  arrange(date) %>%
+  mutate(delta=cases-lag(cases)) %>% # computed by group
+  filter(delta < 0)
+```
+
+Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks.  Because we're dealing only with totals, we can do this simply by selecting the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
+
+```{r}
+south_areas <- c("SOUTH COUNTY UNINCORPORATED AREA includes communities of Montecito, Summerland and the City of Carpinteria",
+                 "CITY OF SANTA BARBARA and the unincorporated area of Mission Canyon",
+                 "CITY OF GOLETA",
+                 "COMMUNITY OF ISLA VISTA",
+                 "UNINCORPORATED AREA OF THE GOLETA VALLEY AND GAVIOTA",
+                 "SANTA YNEZ VALLEY including the Cities of Solvang & Buellton, and the communities of Santa Ynez, Los Alamos, Los Olivos and Ballard")
+north_areas <- c("CITY OF LOMPOC and the communities of Mission Hills and Vandenberg Village",
+                 "CITY OF SANTA MARIA",
+                 "COMMUNITY OF ORCUTT",
+                 "UNINCORPORATED AREAS of Sisquoc, Casmalia, Garey, Cuyama, New Cuyama, and the City of Guadalupe")
+other_areas <- c("FEDERAL PRISON IN LOMPOC",
+                 "People incarcerated at the Federal Prison in Lompoc",
+                 "Out of County")
+
+base_data <- raw_data %>%
+  mutate(region=fct_collapse(area, south=south_areas, north=north_areas, other=other_areas)) %>%
+  filter(region != "other") %>%
+  group_by(region, date) %>%
+  summarize(cases=sum(cases)) %>%
+  filter(wday(date) == 4)
+```
+
+## Total cases
+
+```{r}
+legend <- scale_color_manual(
+  labels=c("South county (including SYV)", "North county (excluding prison)"),
+  values=c("red", "blue"))
+
+ggplot(base_data, aes(x=date, y=cases, color=region)) + geom_line() +
+  labs(x="Date", y="Total cases", color="Region") +
+  legend
+```
+
+## Weekly new cases
+
+```{r}
+week_data <- base_data %>%
+  arrange(date) %>%
+  mutate(new_cases=cases-lag(cases)) %>%
+  drop_na # first row in each group is NA
+
+ggplot(week_data, aes(x=date, y=new_cases, color=region)) + geom_line() +
+  labs(x="Date", y="Weekly new cases", color="Region") +
+  legend
+```
+
+## Trajectory
+
+Are we controlling the virus, or is it still spreading uncontrollably?  Following [Aatish Bhatia](https://aatishb.com/covidtrends/), we plot weekly new cases versus total cases.  The idea is that as long as the virus is spreading exponentially, at any given time the number of new cases arising is proportional to the total cases.  When plotted, such growth appears as a straight line.  If/when the virus is controlled, the graph will plummet downward.
+
+Note that time is implicit here.  The graphs for each region evolve left to right, but not necessarily at a uniform rate, and not necessarily at the same rate.
+
+```{r}
+ggplot(week_data, aes(x=cases, y=new_cases, color=region)) +
+  geom_line() +
+  geom_point(data=week_data[week_data$date==max(week_data$date),]) + # add terminal points
+  scale_x_log10() + scale_y_log10() +
+  annotation_logticks() +
+  labs(x="Total cases", y="Weekly new cases", color="Region") +
+  legend
+```
+
+## Growth rate
+
+How fast is the virus spreading?  I.e., what growth rate does the general slope of the above graphs represent?  Looking at North county growth over the first 13 weeks for which we have data, we can compute from ${\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}$:
+
+```{r}
+data <- base_data %>% filter(region == "north") %>% arrange(date)
+growth_rate <- (data[13,"cases"]/data[1,"cases"])^(1/12)
+doubling_time <- log(2)/log(growth_rate) # weeks
+```
+
+So the virus is spreading `r round((growth_rate-1)*100)`% weekly on average, meaning the number of cases doubles about every `r round(doubling_time, 1)` weeks.  Caveat: case counts are affecte by the prevalence of testing.
