@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-The code here scrapes the Santa Barbara County Public Health Department's [COVID-19 status page](https://publichealthsbc.org/status-reports/) for case counts.  It's hard to imagine how they could have made the data harder to extract, seeing as what is counted, how it is counted, and how counts are presented have all changed multiple times since the pandemic began.  Our goal is to extract total confirmed cases (only) broken down by date and by geographic area within the county.  Without going to significantly more work, this is possible only as far back as April 27, 2020.
+The code here scrapes the Santa Barbara County Public Health Department's [COVID-19 status page](https://publichealthsbc.org/status-reports/) for case counts.  It's hard to imagine how they could have made the data harder to extract, seeing as what is counted, how it is counted, and how counts are presented have all changed multiple times since the pandemic began.  Our goal is to extract cumulative total confirmed cases (only) broken down by date and by geographic area within the county.  Without going to significantly more work, this is possible only as far back as April 27, 2020.
 
 The data frequency is daily, except for weekends and holidays.
 
@@ -57,11 +57,11 @@ tables <- blocks %>%
   html_table(header=TRUE)
 ```
 
-We need to join the dates to the data frames as an additional column, concatenate the data frames to form a single table, and perform other cleanups.  This is most easily done all at once.
+We need to join the dates to the data frames as an additional column, concatenate the data frames to form a single data frame, and perform other cleanups.  This is most easily done all at once.
 
 ```{r}
 form_df <- function (table, date) {
-  # combine a single table and a single date
+  # combine a single table (data frame) and a single date
   if ("Total Confirmed Cases" %in% colnames(table)) {
     colname <- "Total Confirmed Cases"
   } else {

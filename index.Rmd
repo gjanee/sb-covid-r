@@ -16,7 +16,7 @@ library(tidyverse)
 library(lubridate)
 ```
 
-Load the data, which was previously scraped from the Department website using [this script](scrape.html).  The data is total confirmed cases broken down by date and geographic area within the county.
+Load the data, which was previously scraped from the Department website using [this script](scrape.html).  The data is cumulative total confirmed cases broken down by date and by geographic area within the county.
 
 ```{r}
 raw_data <- read_csv("data/data.csv", col_types="fiD")
@@ -26,17 +26,17 @@ head(raw_data)
 range(raw_data$date)
 ```
 
-Sanity check: for each geographic area, the number of cases, being totals, should increase monotonically over time.  But this being the real world, in a few cases they don't.  Perhaps decreasing case numbers reflect corrections?
+Sanity check: for each geographic area, the numbers of cases, being cumulative totals, should increase monotonically over time.  But this being the real world, in a few cases they don't.  Perhaps decreasing case numbers reflect corrections?
 
 ```{r}
 raw_data %>%
   group_by(area) %>%
   arrange(date) %>%
-  mutate(delta=cases-lag(cases)) %>% # computed by group
+  mutate(delta=cases-lag(cases)) %>% # computed within each group
   filter(delta < 0)
 ```
 
-Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks instead of days.  Because we're dealing only with totals, we can do this simply by selecting all the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
+Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks instead of days.  Because we're working with cumulative totals, we can do this simply by selecting all the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
 
 ```{r}
 south_areas <- c("SOUTH COUNTY UNINCORPORATED AREA includes communities of Montecito, Summerland and the City of Carpinteria",
@@ -59,9 +59,11 @@ base_data <- raw_data %>%
   group_by(region, date) %>%
   summarize(cases=sum(cases)) %>%
   filter(wday(date) == 4)
+
+head(base_data)
 ```
 
-## Total cases
+## Cumulative total cases
 
 ```{r}
 legend <- scale_color_manual(
@@ -69,7 +71,7 @@ legend <- scale_color_manual(
   values=c("red", "blue"))
 
 ggplot(base_data, aes(x=date, y=cases, color=region)) + geom_line() +
-  labs(x="Date", y="Total cases", color="Region") +
+  labs(x="Date", y="Cumulative total cases", color="Region") +
   legend
 ```
 
@@ -88,7 +90,7 @@ ggplot(week_data, aes(x=date, y=new_cases, color=region)) + geom_line() +
 
 ## Trajectory
 
-Are we controlling the virus, or is it still spreading uncontrollably?  Following [Aatish Bhatia](https://aatishb.com/covidtrends/), we plot weekly new cases versus total cases.  The idea is that as long as the virus is spreading exponentially, at any given time the number of new cases arising is proportional to the total cases.  When plotted, such growth appears as a straight line.  If/when the virus is controlled, the graph will plummet downward.
+Are we controlling the virus, or is it still spreading uncontrollably?  Following [Aatish Bhatia](https://aatishb.com/covidtrends/), we plot weekly new cases versus cumulative total cases.  The idea is that as long as the virus is spreading exponentially, the number of new cases arising is proportional to the total number of cases at that time.  When plotted, such growth appears as a straight line.  If/when the virus is controlled, the graph will plummet downward.
 
 Note that time is implicit here.  The graphs for each region evolve left to right, but not necessarily at a uniform rate, and not necessarily at the same rate.
 
@@ -98,13 +100,13 @@ ggplot(week_data, aes(x=cases, y=new_cases, color=region)) +
   geom_point(data=week_data[week_data$date==max(week_data$date),]) + # add terminal points
   scale_x_log10() + scale_y_log10() +
   annotation_logticks() +
-  labs(x="Total cases", y="Weekly new cases", color="Region") +
+  labs(x="Cumulative total cases", y="Weekly new cases", color="Region") +
   legend
 ```
 
 ## Growth rate
 
-How fast is the virus spreading?  I.e., what growth rate does the general slope of the above graphs represent?  Looking at north county growth over the first 13 weeks for which we have data, we can compute from ${\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}$:
+How fast is the virus spreading?  I.e., what growth rate does the general slope of the above graphs represent?  Looking at north county growth over the first 13 weeks for which we have data (i.e., when the cumulative number of cases went from approximately 300 to approximately 3,000), we can compute from ${\it week}_1 \cdot {\it growth\_rate}^{12} = {\it week}_{13}$:
 
 ```{r}
 data <- base_data %>% filter(region == "north") %>% arrange(date)
@@ -112,4 +114,4 @@ growth_rate <- (data[13,"cases"]/data[1,"cases"])^(1/12)
 doubling_time <- log(2)/log(growth_rate) # weeks
 ```
 
-So the virus is growing by `r round((growth_rate-1)*100)`% each week on average, meaning the number of cases doubles about every `r round(doubling_time, 1)` weeks.  Caveat: case counts are affected by the prevalence of testing.
+So during that period the virus grew by `r round((growth_rate-1)*100)`% each week on average, meaning the number of cases doubled about every `r round(doubling_time, 1)` weeks.  Caveat: case counts are affected by the prevalence of testing and other factors.

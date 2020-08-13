@@ -188,7 +188,7 @@ $(document).ready(function () {
 </div>
 
 
-<p>The code here scrapes the Santa Barbara County Public Health Department’s <a href="https://publichealthsbc.org/status-reports/">COVID-19 status page</a> for case counts. It’s hard to imagine how they could have made the data harder to extract, seeing as what is counted, how it is counted, and how counts are presented have all changed multiple times since the pandemic began. Our goal is to extract total confirmed cases (only) broken down by date and by geographic area within the county. Without going to significantly more work, this is possible only as far back as April 27, 2020.</p>
+<p>The code here scrapes the Santa Barbara County Public Health Department’s <a href="https://publichealthsbc.org/status-reports/">COVID-19 status page</a> for case counts. It’s hard to imagine how they could have made the data harder to extract, seeing as what is counted, how it is counted, and how counts are presented have all changed multiple times since the pandemic began. Our goal is to extract cumulative total confirmed cases (only) broken down by date and by geographic area within the county. Without going to significantly more work, this is possible only as far back as April 27, 2020.</p>
 <p>The data frequency is daily, except for weekends and holidays.</p>
 <pre class="r"><code>library(tidyverse)
 library(lubridate)
@@ -220,9 +220,9 @@ blocks &lt;- page %&gt;%
 tables &lt;- blocks %&gt;%
   html_node(xpath=paste(&quot;following-sibling::div/table[&quot;, table_constraint, &quot;]&quot;)) %&gt;%
   html_table(header=TRUE)</code></pre>
-<p>We need to join the dates to the data frames as an additional column, concatenate the data frames to form a single table, and perform other cleanups. This is most easily done all at once.</p>
+<p>We need to join the dates to the data frames as an additional column, concatenate the data frames to form a single data frame, and perform other cleanups. This is most easily done all at once.</p>
 <pre class="r"><code>form_df &lt;- function (table, date) {
-  # combine a single table and a single date
+  # combine a single table (data frame) and a single date
   if (&quot;Total Confirmed Cases&quot; %in% colnames(table)) {
     colname &lt;- &quot;Total Confirmed Cases&quot;
   } else {
