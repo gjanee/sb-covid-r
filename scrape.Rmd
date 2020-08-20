@@ -23,7 +23,7 @@ emdash <- intToUtf8(0x2014)
 url <- "https://publichealthsbc.org/status-reports/"
 ```
 
-The page can be loaded live, but here we assume that the page has already been downloaded via `wget` or other.  There are a few places where non-breaking spaces appear in column names.  These make the columns impossible to reference from R, so we just remove them entirely.
+The page can be loaded live, but here we assume that the page has already been downloaded via `wget` or other.  There are a few places where non-breaking spaces appear in column names.  These make the columns impossible to reference from R, so we just remove the spaces entirely.
 
 ```{r}
 raw_page <- read_file("data/cache.html") %>% str_replace_all(nbsp, "")

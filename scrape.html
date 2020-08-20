@@ -199,7 +199,7 @@ nbsp &lt;- intToUtf8(0x00A0)
 emdash &lt;- intToUtf8(0x2014)
 
 url &lt;- &quot;https://publichealthsbc.org/status-reports/&quot;</code></pre>
-<p>The page can be loaded live, but here we assume that the page has already been downloaded via <code>wget</code> or other. There are a few places where non-breaking spaces appear in column names. These make the columns impossible to reference from R, so we just remove them entirely.</p>
+<p>The page can be loaded live, but here we assume that the page has already been downloaded via <code>wget</code> or other. There are a few places where non-breaking spaces appear in column names. These make the columns impossible to reference from R, so we just remove the spaces entirely.</p>
 <pre class="r"><code>raw_page &lt;- read_file(&quot;data/cache.html&quot;) %&gt;% str_replace_all(nbsp, &quot;&quot;)
 page &lt;- read_html(raw_page)</code></pre>
 <p>Each day’s data is contained in a pair of adjacent sibling <code>&lt;div&gt;</code>’s, the first of which contains the date inside a hyperlink (a couple different formats are used for the date), the second of which contains the data table we want (mixed in with other tables and content in variable order). We identify the table we want by looking for the presence of key column names. The cases column name might be “Confirmed Cases” or “Total Confirmed Cases”.</p>
