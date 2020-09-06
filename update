@@ -1,0 +1,11 @@
+#!/bin/bash
+
+wget=/opt/local/bin/wget
+R=/usr/local/bin/R
+pandoc=/Applications/RStudio.app/Contents/MacOS/pandoc
+
+$wget -O data/cache.html https://publichealthsbc.org/status-reports/
+
+export PATH=$PATH:$pandoc
+$R -e "rmarkdown::render('scrape.Rmd')"
+$R -e "rmarkdown::render('index.Rmd')"
