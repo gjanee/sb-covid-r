@@ -37,25 +37,7 @@ raw_data %>%
   arrange(delta)
 ```
 
-**Update 9/2:** there's a clear outlier above that appears to stem from a typographic error:
-
-```{r}
-sisquoc <- "UNINCORPORATED AREAS of Sisquoc, Casmalia, Garey, Cuyama, New Cuyama, and the City of Guadalupe"
-raw_data %>%
-  filter(area == sisquoc) %>%
-  filter(between(date, ymd("2020-09-01"), ymd("2020-09-03"))) %>%
-  select(date, cases) %>%
-  arrange(date)
-```
-
-We assume the correct value is 358.  (We've notified SBCPHD of the problem.)
-
-```{r}
-raw_data[raw_data$area == sisquoc &
-           raw_data$date == ymd("2020-09-02"), "cases"] <- 358
-```
-
-Otherwise ignoring the data problems, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks instead of days.  Because we're working with cumulative totals, we can do this simply by selecting all the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
+Ignoring that, for simplicity we consolidate geographic areas into two regions, north county and south county.  There's no firm dividing line, but below is the definition we use.  Notice that the Lompoc prison is excluded.  To smooth the data we downsample it to weeks instead of days.  Because we're working with cumulative totals, we can do this simply by selecting all the Wednesdays (Wednesday because it avoids problems caused by missing data on weekends and holidays).
 
 ```{r}
 south_areas <- c("SOUTH COUNTY UNINCORPORATED AREA includes communities of Montecito, Summerland and the City of Carpinteria",
