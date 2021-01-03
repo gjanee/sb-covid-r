@@ -80,6 +80,13 @@ form_df <- function (table, date) {
 table <- map2_df(tables, dates, ~ form_df(.x, .y))
 ```
 
+A couple more cleanups are required.  First, there are several duplicate dates.  For each of these we keep the data for the first occurrence of the date (i.e., what appears to be the most recently added data) only.  Second, the status page was modified at some point to go back only as far as June 1.  We append a cache of historical data we obtained previously to form a single table going back to April 27.
+
+```{r}
+table <- table %>% distinct(area, date, .keep_all=TRUE)
+table <- rbind(table, read_csv("data/historical.csv", col_types="ciD"))
+```
+
 Write the data out.
 
 ```{r}
