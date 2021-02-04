@@ -68,10 +68,26 @@ head(base_data)
 ## Cumulative total cases
 
 ```{r}
+special_date_lines <- function (max_y) {
+  annotations <- data.frame(
+    x=c(ymd("2020-11-26"), ymd("2020-12-25")),
+    y=c(max_y*0.9, max_y*0.8),
+    label=c("Thanksgiving", "Christmas")
+  )
+  list(
+    geom_vline(xintercept=annotations$x[1], color="orange", size=0.25),
+    geom_vline(xintercept=annotations$x[2], color="orange", size=0.25),
+    geom_label(data=annotations, aes(x=x, y=y, label=label, hjust=1),
+               color="orange", size=3, show.legend=FALSE)
+  )
+}
+
 legend <- scale_color_discrete(
   labels=c("North county (excluding prison)", "South county (including SYV)"))
 
-ggplot(base_data, aes(x=date, y=cases, color=region)) + geom_line() +
+ggplot(base_data, aes(x=date, y=cases, color=region)) +
+  special_date_lines(max(base_data$cases)) +
+  geom_line() +
   labs(x="Date", y="Cumulative total cases", color="Region") +
   legend
 ```
@@ -84,7 +100,9 @@ week_data <- base_data %>%
   mutate(new_cases=cases-lag(cases)) %>%
   drop_na # first row in each group is NA
 
-ggplot(week_data, aes(x=date, y=new_cases, color=region)) + geom_line() +
+ggplot(week_data, aes(x=date, y=new_cases, color=region)) +
+  special_date_lines(max(week_data$new_cases)) +
+  geom_line() +
   labs(x="Date", y="Weekly new cases", color="Region") +
   legend
 ```
