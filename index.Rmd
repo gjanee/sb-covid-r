@@ -59,7 +59,7 @@ base_data <- raw_data %>%
   filter(region != "other") %>%
   mutate(region=fct_relevel(region, c("north", "south"))) %>% # set order for consistent graphing, labels
   group_by(region, date) %>%
-  summarize(cases=sum(cases)) %>%
+  summarize(cases=sum(cases), .groups="drop_last") %>%
   filter(wday(date) == 4)
 
 head(base_data)
@@ -75,8 +75,8 @@ special_date_lines <- function (max_y) {
     label=c("Thanksgiving", "Christmas")
   )
   list(
-    geom_vline(xintercept=annotations$x[1], color="orange", size=0.25),
-    geom_vline(xintercept=annotations$x[2], color="orange", size=0.25),
+    geom_vline(xintercept=annotations$x[1], color="orange", linewidth=0.25),
+    geom_vline(xintercept=annotations$x[2], color="orange", linewidth=0.25),
     geom_label(data=annotations, aes(x=x, y=y, label=label, hjust=1),
                color="orange", size=3, show.legend=FALSE)
   )
